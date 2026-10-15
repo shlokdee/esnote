@@ -14,17 +14,68 @@ struct Page{
     children: Vec<Page>,
 }
 
+impl Block{
+    fn new(text:String) -> Block {
+        Block {
+            block_type: BlockType::Paragraph,
+            content: text,
+        }
+    }
+}
 
-let first_note=Block{
-    block_type: BlockType::Paragraph,
-    content: String::from("first note lesgoo"),
+impl Page{
+    fn new(title:String) ->Page{
+        Page{
+            title: title,
+            blocks: Vec::new(),
+            children: Vec::new(),
+        }
+    }
 
-};
+    fn addblock(&mut self, newblock:Block){
+       self. blocks.push(newblock);
+    }
+}
 
-let first_page=Page{
-    title: String::from("epic title"),
-    blocks: Vec::new(),
-    children: Vec::new(),
 
-};
+
+use eframe::egui;
+
+
+struct EsNote{
+    test:String,
+}
+
+
+
+impl eframe::App for EsNote{
+    fn ui(&mut self, ui: &mut egui::Ui, _frame:&mut eframe::Frame){
+        egui::CentralPanel::default().show(ui, |ui| {
+            ui.heading("test gui!")
+        });
+    }
+}
+
+
+fn main() -> eframe::Result<()>{
+    /* before boilerplate code
+    let mut firstpage=Page::new(String::from("epic page!"));
+    let firstblock=Block::new(String::from("heres some block text"));
+    firstpage.addblock(firstblock);
+    */
+
+    let esnote=EsNote{
+        test: String::from("this is a test message"),
+    };
+
+    let native_options = eframe::NativeOptions::default();
+
+    eframe::run_native(
+        "Es Note",
+        native_options,
+        Box::new(|_cc| Ok(Box::new(esnote)))
+    )
+
+
+}
 
