@@ -37,8 +37,8 @@ impl Page{
         }
     }
 
-    fn addblock(&mut self, newblock:Block){
-       self. blocks.push(newblock);
+    fn addblock(&mut self, newblock:Block, index:usize){
+       self. blocks.insert(index,newblock);
     }
 }
 
@@ -72,14 +72,14 @@ impl eframe::App for EsNote{
                 }
             }
 
-            if ui.button("add page").clicked(){
+            if ui.button("+").clicked(){
                 self.addtoggle=true;
             }
             if self.addtoggle{
                 ui.text_edit_singleline(&mut self.new_page_name);
                     let mut newpage=Page::new(String::from(&self.new_page_name));
                     let firstblock=Block::new(String::from(""));
-                    newpage.addblock(firstblock);
+                    newpage.addblock(firstblock,0);
                     if ui.button("add").clicked(){
                         self.pages.push(newpage);
                         self.page_idx=self.pages.len()-1;
@@ -99,8 +99,8 @@ impl eframe::App for EsNote{
             ui.heading(&current_page.title);
             ui.separator();
             
-            let mut add_new_block=false;
-            for block in &mut current_page.blocks{
+            let mut add_new_block:usize =0;
+            for (index,block) in &mut current_page.blocks.iter_mut().enumerate(){
                 let editor=ui.add(egui::TextEdit::multiline(&mut block.content));
 
                 if block.needs_focus{
@@ -109,17 +109,14 @@ impl eframe::App for EsNote{
                 }
 
                 //if block.content.ends_with("\n"){
-                if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    add_new_block=true;
+                if editor.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    add_new_block=index+1;
 
                 }
 
-                
-
-
             }
-            if add_new_block{
-                current_page.addblock(Block::new(String::from("")));
+            if (add_new_block!=0){
+                current_page.addblock(Block::new(String::from("")),add_new_block);
             }
 
             ui.separator();
@@ -138,7 +135,7 @@ fn main() -> eframe::Result<()>{
     let mut pagevec=Vec::new();
     let mut untitledpage=Page::new(String::from("Untitled"));
     let dummyblock=Block::new(String::from(""));
-    untitledpage.addblock(dummyblock);
+    untitledpage.addblock(dummyblock,0);
     pagevec.push(untitledpage);
 
     let esnote=EsNote{
