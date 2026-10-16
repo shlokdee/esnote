@@ -15,6 +15,7 @@ struct Page{
     block_idx: usize,
     children: Vec<Page>,
 
+
 }
 
 impl Block{
@@ -34,6 +35,7 @@ impl Page{
             blocks: Vec::new(),
             block_idx:0,
             children: Vec::new(),
+
         }
     }
 
@@ -45,6 +47,7 @@ impl Page{
 
 
 use eframe::egui;
+use egui::Vec2;
 
 
 struct EsNote{
@@ -66,11 +69,12 @@ impl eframe::App for EsNote{
             ui.heading("pages");
             ui.separator();
 
-            for (index,page) in self.pages.iter().enumerate(){
-                if ui.button(&page.title).clicked(){
+            ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui|{
+                for (index,page) in self.pages.iter().enumerate(){
+                if ui.selectable_label(index==self.page_idx,&page.title).clicked(){
                     self.page_idx=index;
                 }
-            }
+            }});
 
             if ui.button("+").clicked(){
                 self.addtoggle=true;
@@ -96,12 +100,18 @@ impl eframe::App for EsNote{
         egui::CentralPanel::default().show(ui, |ui| {
             let current_page=&mut self.pages[self.page_idx];
 
-            ui.heading(&current_page.title);
+            //ui.heading(&current_page.title);
+            ui.add(egui::TextEdit::singleline(&mut current_page.title).font(egui::TextStyle::Heading)
+                .desired_width(f32::INFINITY)
+                .frame(egui::Frame::NONE));
             ui.separator();
             
             let mut add_new_block:usize =0;
             for (index,block) in &mut current_page.blocks.iter_mut().enumerate(){
-                let editor=ui.add(egui::TextEdit::multiline(&mut block.content));
+                let editor=ui.add(egui::TextEdit::multiline(&mut block.content)
+                    .desired_width(f32::INFINITY)
+                    .desired_rows(1)
+                    .frame(egui::Frame::NONE.inner_margin(egui::Margin::symmetric(8,4))));
 
                 if block.needs_focus{
                     editor.request_focus();
@@ -109,9 +119,19 @@ impl eframe::App for EsNote{
                 }
 
                 //if block.content.ends_with("\n"){
-                if editor.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                if editor.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) && !ui.input(|i| i.modifiers.shift) {
                     add_new_block=index+1;
+                    block.content.pop();
 
+                }
+
+                if editor.hovered()/*||editor.has_focus()*/{
+                    ui.painter().rect_stroke(
+                        editor.rect,
+                        2.0,
+                        ui.visuals().widgets.hovered.bg_stroke,
+                        egui::StrokeKind::Inside,
+                    );
                 }
 
             }
