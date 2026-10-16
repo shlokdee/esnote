@@ -1,0 +1,3 @@
+{
+    "code-builder.build.projectBuildCommand": "cargo run"
+}

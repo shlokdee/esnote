@@ -6,12 +6,15 @@ enum BlockType{
 struct Block{
     block_type:BlockType,
     content: String,
+    needs_focus:bool,
 }
 
 struct Page{
     title: String,
     blocks: Vec<Block>,
+    block_idx: usize,
     children: Vec<Page>,
+
 }
 
 impl Block{
@@ -19,6 +22,7 @@ impl Block{
         Block {
             block_type: BlockType::Paragraph,
             content: text,
+            needs_focus:true,
         }
     }
 }
@@ -28,6 +32,7 @@ impl Page{
         Page{
             title: title,
             blocks: Vec::new(),
+            block_idx:0,
             children: Vec::new(),
         }
     }
@@ -45,13 +50,17 @@ use eframe::egui;
 struct EsNote{
     pages: Vec<Page>,
     page_idx: usize,
-    new_block_input: String,
+    new_page_name: String,
+    addtoggle:bool,
 }
 
 
 
 impl eframe::App for EsNote{
     fn ui(&mut self, ui: &mut egui::Ui, _frame:&mut eframe::Frame){
+
+        
+
 
         egui::Panel::left("sidebar_panel").show(ui,|ui|{
             ui.heading("pages");
@@ -61,6 +70,24 @@ impl eframe::App for EsNote{
                 if ui.button(&page.title).clicked(){
                     self.page_idx=index;
                 }
+            }
+
+            if ui.button("add page").clicked(){
+                self.addtoggle=true;
+            }
+            if self.addtoggle{
+                ui.text_edit_singleline(&mut self.new_page_name);
+                    let mut newpage=Page::new(String::from(&self.new_page_name));
+                    let firstblock=Block::new(String::from(""));
+                    newpage.addblock(firstblock);
+                    if ui.button("add").clicked(){
+                        self.pages.push(newpage);
+                        self.page_idx=self.pages.len()-1;
+                        self.addtoggle=false;
+                    }
+                    if ui.button("cancel").clicked(){
+                        self.addtoggle=false;
+                    }
             }
         });
 
@@ -72,20 +99,32 @@ impl eframe::App for EsNote{
             ui.heading(&current_page.title);
             ui.separator();
             
-            for block in &current_page.blocks{
-                ui.label(&block.content);
+            let mut add_new_block=false;
+            for block in &mut current_page.blocks{
+                let editor=ui.add(egui::TextEdit::multiline(&mut block.content));
+
+                if block.needs_focus{
+                    editor.request_focus();
+                    block.needs_focus=false;
+                }
+
+                //if block.content.ends_with("\n"){
+                if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                    add_new_block=true;
+
+                }
+
+                
+
+
+            }
+            if add_new_block{
+                current_page.addblock(Block::new(String::from("")));
             }
 
             ui.separator();
 
-            ui.horizontal(|ui|{
-                ui.text_edit_singleline(&mut self.new_block_input);
-                if ui.button("add block").clicked(){
-                    let newblock=Block::new(String::from(&self.new_block_input));
-                    current_page.addblock(newblock);
-                    
-                }
-            })
+            
             
         });
 
@@ -96,21 +135,17 @@ impl eframe::App for EsNote{
 
 fn main() -> eframe::Result<()>{
 
-    let mut firstpage=Page::new(String::from("epic page!"));
-    //let firstblock=Block::new(String::from("heres some block text"));
-    //firstpage.addblock(firstblock);
-
-    let mut secondpage=Page::new(String::from("title2!"));
-
     let mut pagevec=Vec::new();
-    pagevec.push(firstpage);
-    pagevec.push(secondpage);
-    
+    let mut untitledpage=Page::new(String::from("Untitled"));
+    let dummyblock=Block::new(String::from(""));
+    untitledpage.addblock(dummyblock);
+    pagevec.push(untitledpage);
 
     let esnote=EsNote{
         pages:pagevec,
         page_idx:0,
-        new_block_input:String::new()
+        new_page_name:String::new(),
+        addtoggle:false,
     };
 
     let native_options = eframe::NativeOptions::default();
