@@ -7,6 +7,7 @@ struct Block{
     block_type:BlockType,
     content: String,
     needs_focus:bool,
+    is_editing:bool,
 }
 
 struct Page{
@@ -24,6 +25,7 @@ impl Block{
             block_type: BlockType::Paragraph,
             content: text,
             needs_focus:true,
+            is_editing:true,
         }
     }
 }
@@ -41,6 +43,15 @@ impl Page{
 
     fn addblock(&mut self, newblock:Block, index:usize){
        self. blocks.insert(index,newblock);
+    }
+
+    fn markdown(&self) -> String{
+        let mut output=format!("# {}\n\n", self.title);
+        for block in &self.blocks{
+            output.push_str(&format!("{}\n\n", block.content));
+        }
+
+        output
     }
 }
 
@@ -73,7 +84,9 @@ impl eframe::App for EsNote{
                 for (index,page) in self.pages.iter().enumerate(){
                 if ui.selectable_label(index==self.page_idx,&page.title).clicked(){
                     self.page_idx=index;
+
                 }
+                
             }});
 
             if ui.button("+").clicked(){
@@ -93,7 +106,16 @@ impl eframe::App for EsNote{
                         self.addtoggle=false;
                     }
             }
-        });
+
+            if ui.button("save").clicked(){
+                for page in &self.pages{
+                std::fs::write(format!("{}.md", &page.title),Page::markdown(&page));
+                }
+            }
+        }
+    
+    
+            );
 
 
 
@@ -101,14 +123,34 @@ impl eframe::App for EsNote{
             let current_page=&mut self.pages[self.page_idx];
 
             //ui.heading(&current_page.title);
-            ui.add(egui::TextEdit::singleline(&mut current_page.title).font(egui::TextStyle::Heading)
+            ui.add(egui::TextEdit::singleline(&mut current_page.title).font(egui::FontId::proportional(24.0))
                 .desired_width(f32::INFINITY)
                 .frame(egui::Frame::NONE));
             ui.separator();
             
             let mut add_new_block:usize =0;
             for (index,block) in &mut current_page.blocks.iter_mut().enumerate(){
+
+                let fontStyle= if block.content.starts_with("# "){
+                    egui::FontId::proportional(24.0)
+                }else if block.content.starts_with("## "){
+                    egui::FontId::proportional(20.0)
+
+                }
+                else if block.content.starts_with("### "){
+                    egui::FontId::proportional(16.0)
+
+                }else{
+                    egui::FontId::proportional(14.0)
+                };
+
+
+                let is_active= block.is_editing || block.content_is_empty();
+
+
+                if is_active{
                 let editor=ui.add(egui::TextEdit::multiline(&mut block.content)
+                .font(fontStyle)
                     .desired_width(f32::INFINITY)
                     .desired_rows(1)
                     .frame(egui::Frame::NONE.inner_margin(egui::Margin::symmetric(8,4))));
@@ -124,6 +166,9 @@ impl eframe::App for EsNote{
                     block.content.pop();
 
                 }
+                if editor.lost_focus(){
+                    block.is_editing=false;
+                }
 
                 if editor.hovered()/*||editor.has_focus()*/{
                     ui.painter().rect_stroke(
@@ -133,6 +178,10 @@ impl eframe::App for EsNote{
                         egui::StrokeKind::Inside,
                     );
                 }
+
+            }else{
+
+            }
 
             }
             if (add_new_block!=0){
