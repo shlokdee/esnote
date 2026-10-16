@@ -45,6 +45,7 @@ use eframe::egui;
 struct EsNote{
     pages: Vec<Page>,
     page_idx: usize,
+    new_block_input: String,
 }
 
 
@@ -66,7 +67,7 @@ impl eframe::App for EsNote{
 
 
         egui::CentralPanel::default().show(ui, |ui| {
-            let current_page=&self.pages[self.page_idx];
+            let current_page=&mut self.pages[self.page_idx];
 
             ui.heading(&current_page.title);
             ui.separator();
@@ -74,6 +75,17 @@ impl eframe::App for EsNote{
             for block in &current_page.blocks{
                 ui.label(&block.content);
             }
+
+            ui.separator();
+
+            ui.horizontal(|ui|{
+                ui.text_edit_singleline(&mut self.new_block_input);
+                if ui.button("add block").clicked(){
+                    let newblock=Block::new(String::from(&self.new_block_input));
+                    current_page.addblock(newblock);
+                    
+                }
+            })
             
         });
 
@@ -85,8 +97,8 @@ impl eframe::App for EsNote{
 fn main() -> eframe::Result<()>{
 
     let mut firstpage=Page::new(String::from("epic page!"));
-    let firstblock=Block::new(String::from("heres some block text"));
-    firstpage.addblock(firstblock);
+    //let firstblock=Block::new(String::from("heres some block text"));
+    //firstpage.addblock(firstblock);
 
     let mut secondpage=Page::new(String::from("title2!"));
 
@@ -98,6 +110,7 @@ fn main() -> eframe::Result<()>{
     let esnote=EsNote{
         pages:pagevec,
         page_idx:0,
+        new_block_input:String::new()
     };
 
     let native_options = eframe::NativeOptions::default();
