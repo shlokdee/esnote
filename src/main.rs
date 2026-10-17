@@ -1,6 +1,10 @@
+#[derive(PartialEq)]
+
 enum BlockType{
     Paragraph,
-    //add more block types later (e.g. heading, levels for heading, etc)
+    Heading1,
+    Heading2,
+    Heading3,
 }
 
 struct Block{
@@ -131,24 +135,16 @@ impl eframe::App for EsNote{
             let mut add_new_block:usize =0;
             for (index,block) in &mut current_page.blocks.iter_mut().enumerate(){
 
-                let fontStyle= if block.content.starts_with("# "){
-                    egui::FontId::proportional(24.0)
-                }else if block.content.starts_with("## "){
-                    egui::FontId::proportional(20.0)
 
-                }
-                else if block.content.starts_with("### "){
-                    egui::FontId::proportional(16.0)
-
-                }else{
-                    egui::FontId::proportional(14.0)
+                let fontStyle = match block.block_type{
+                    BlockType::Heading1=>egui::FontId::proportional(24.0),
+                    BlockType::Heading2=>egui::FontId::proportional(20.0),
+                    BlockType::Heading3=>egui::FontId::proportional(18.0),
+                    BlockType::Paragraph=>egui::FontId::proportional(14.0),
                 };
 
 
-                let is_active= block.is_editing || block.content_is_empty();
 
-
-                if is_active{
                 let editor=ui.add(egui::TextEdit::multiline(&mut block.content)
                 .font(fontStyle)
                     .desired_width(f32::INFINITY)
@@ -170,6 +166,12 @@ impl eframe::App for EsNote{
                     block.is_editing=false;
                 }
 
+                
+                if editor.gained_focus(){
+                    block.is_editing=true;
+                    
+                }
+
                 if editor.hovered()/*||editor.has_focus()*/{
                     ui.painter().rect_stroke(
                         editor.rect,
@@ -178,12 +180,47 @@ impl eframe::App for EsNote{
                         egui::StrokeKind::Inside,
                     );
                 }
-
-            }else{
-
+                if editor.gained_focus(){
+                if block.block_type==BlockType::Heading1{
+                        block.content.insert_str(0,"# ");
+                }else if block.block_type==BlockType::Heading2{
+                    block.content.insert_str(0,"## ");
+                }else if block.block_type==BlockType::Heading3{
+                    block.content.insert_str(0,"### ");
+                }
             }
 
+                //let is_active= block.is_editing; //|| block.content_is_empty();
+                if block.is_editing{
+                    
+
+                if block.content.starts_with("# "){
+                    block.block_type=BlockType::Heading1;
+                } else if block.content.starts_with("## "){
+                    block.block_type=BlockType::Heading2
+                }else if block.content.starts_with("### "){
+                    block.block_type=BlockType::Heading3
+                }else {
+                    block.block_type=BlockType::Paragraph
+                }
             }
+
+            
+            
+            if editor.lost_focus(){
+                if block.content.starts_with("# "){
+                    block.content.replace_range(0..2, "");
+                } else if block.content.starts_with("## "){
+                    block.content.replace_range(0..3, "");
+                }else if block.content.starts_with("### "){
+                    block.content.replace_range(0..4, "");
+                
+            }}}
+
+
+            
+
+            
             if (add_new_block!=0){
                 current_page.addblock(Block::new(String::from("")),add_new_block);
             }
