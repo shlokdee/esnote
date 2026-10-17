@@ -133,6 +133,7 @@ impl eframe::App for EsNote{
             ui.separator();
             
             let mut add_new_block:usize =0;
+            let mut delete_idx: Option<usize>=None;
             for (index,block) in &mut current_page.blocks.iter_mut().enumerate(){
 
 
@@ -162,13 +163,34 @@ impl eframe::App for EsNote{
                     block.content.pop();
 
                 }
+
+                if editor.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Backspace)) && block.content.is_empty(){
+                    if index>0{
+                        delete_idx=Some(index)
+                    }
+                }
                 if editor.lost_focus(){
                     block.is_editing=false;
+                    if block.content.starts_with("# "){
+                    block.content.replace_range(0..2, "");
+                } else if block.content.starts_with("## "){
+                    block.content.replace_range(0..3, "");
+                }else if block.content.starts_with("### "){
+                    block.content.replace_range(0..4, "");
+                
+            }
                 }
 
                 
                 if editor.gained_focus(){
                     block.is_editing=true;
+                    if block.block_type==BlockType::Heading1{
+                        block.content.insert_str(0,"# ");
+                }else if block.block_type==BlockType::Heading2{
+                    block.content.insert_str(0,"## ");
+                }else if block.block_type==BlockType::Heading3{
+                    block.content.insert_str(0,"### ");
+                }
                     
                 }
 
@@ -180,19 +202,10 @@ impl eframe::App for EsNote{
                         egui::StrokeKind::Inside,
                     );
                 }
-                if editor.gained_focus(){
-                if block.block_type==BlockType::Heading1{
-                        block.content.insert_str(0,"# ");
-                }else if block.block_type==BlockType::Heading2{
-                    block.content.insert_str(0,"## ");
-                }else if block.block_type==BlockType::Heading3{
-                    block.content.insert_str(0,"### ");
-                }
-            }
+                
 
                 //let is_active= block.is_editing; //|| block.content_is_empty();
                 if block.is_editing{
-                    
 
                 if block.content.starts_with("# "){
                     block.block_type=BlockType::Heading1;
@@ -206,16 +219,7 @@ impl eframe::App for EsNote{
             }
 
             
-            
-            if editor.lost_focus(){
-                if block.content.starts_with("# "){
-                    block.content.replace_range(0..2, "");
-                } else if block.content.starts_with("## "){
-                    block.content.replace_range(0..3, "");
-                }else if block.content.starts_with("### "){
-                    block.content.replace_range(0..4, "");
-                
-            }}}
+            }
 
 
             
@@ -223,6 +227,11 @@ impl eframe::App for EsNote{
             
             if (add_new_block!=0){
                 current_page.addblock(Block::new(String::from("")),add_new_block);
+            }
+            if let Some(target_idx)=delete_idx{
+                    current_page.blocks.remove(target_idx);
+                    current_page.blocks[target_idx-1].needs_focus=true;
+
             }
 
             ui.separator();
